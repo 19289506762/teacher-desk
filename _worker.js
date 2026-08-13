@@ -85,7 +85,8 @@ export default {
         });
 
         if (!deleteResponse.ok) {
-          throw new Error('删除 Auth 用户失败');
+          const errorText = await deleteResponse.text();
+    throw new Error(`删除 Auth 用户失败 (HTTP ${deleteResponse.status}): ${errorText}`);
         }
 
         // 注意：业务数据由 Supabase 触发器自动删除，不需要在这里处理
