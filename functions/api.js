@@ -1,20 +1,14 @@
-// netlify/functions/api.js
-const fetch = require('node-fetch');
-
-// ⚠️ 重要：API Key 通过 Netlify 环境变量配置，不要硬编码！
-const API_KEY = process.env.BAILIAN_API_KEY;
-const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-
-exports.handler = async (event) => {
-  // 只接受 POST 请求
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+// functions/api.js - Cloudflare Pages 兼容版
+export async function onRequest(context) {
+  if (context.request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
   }
 
   try {
-    const requestBody = JSON.parse(event.body);
+    const requestBody = await context.request.json();
+    const API_KEY = context.env.BAILIAN_API_KEY;
+    const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
-    // 转发请求到阿里云百炼（OpenAI 兼容模式）
     const response = await fetch(`${BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -30,19 +24,20 @@ exports.handler = async (event) => {
     });
 
     const data = await response.json();
-
-    return {
-      statusCode: 200,
+    return new Response(JSON.stringify(data), {
+      status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*', // 允许前端跨域
+        'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
-    };
+    });
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: '代理请求失败：' + error.message }),
-    };
+    return new Response(JSON.stringify({ error: '代理请求失败：' + error.message }), {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    });
   }
-};
+}
