@@ -1,9 +1,9 @@
-// _worker.js - 完整版（API 代理 + 静态页面托管）
+// _worker.js - 修复重定向循环
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // ----- 1. AI API 代理 -----
+    // 1. AI API 代理
     if (url.pathname === '/api') {
       if (request.method !== 'POST') {
         return new Response('Method Not Allowed', { status: 405 });
@@ -47,18 +47,7 @@ export default {
       }
     }
 
-    // ----- 2. 静态页面托管（重要！） -----
-    // 尝试从静态资源中获取请求的文件
-    try {
-      // 如果是根路径，直接返回 index.html
-      if (url.pathname === '/' || url.pathname === '') {
-        return await env.ASSETS.fetch(new Request(url.origin + '/index.html', request));
-      }
-      // 其他静态资源（.html, .css, .js, .png 等）正常返回
-      return await env.ASSETS.fetch(request);
-    } catch (error) {
-      // 如果静态资源不存在，返回 404
-      return new Response('Not Found', { status: 404 });
-    }
+    // 2. 所有其他请求交给 Cloudflare Pages 静态服务（自动处理 index.html）
+    return env.ASSETS.fetch(request);
   }
 };
