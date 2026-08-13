@@ -5947,20 +5947,6 @@ async function deleteAccount() {
             renderAll();
             alert('✅ 已清空所有数据');
         }
-async function deleteAccount() {
-    if (!currentUser) {
-        alert('请先登录');
-        return;
-    }
-    if (!confirm('⚠️ 确定要注销账户吗？\n\n此操作将永久删除：\n- 所有学生信息\n- 所有成绩数据\n- 所有作业记录\n- 所有考勤记录\n- 所有评价记录\n- 所有个人设置\n\n此操作不可恢复！')) {
-        return;
-    }
-    const password = prompt('请输入您的密码以确认注销：');
-    if (password === null) return;
-    if (!password || password.trim() === '') {
-        alert('密码不能为空');
-        return;
-    }
 
     const btn = document.querySelector('.btn-danger[onclick*="deleteAccount"]');
     const originalText = btn?.textContent || '注销';

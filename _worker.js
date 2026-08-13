@@ -50,7 +50,7 @@ export default {
     // ===== 2. 账户注销 API =====
     if (url.pathname === '/api/delete-account' && request.method === 'POST') {
       try {
-        const { userId, password } = await request.json();
+        const { userId, username,password } = await request.json();
 
         const SUPABASE_URL = 'https://vmvwlqoadwusvivqffjb.supabase.co';
         const SUPABASE_SERVICE_KEY = env.SUPABASE_SERVICE_KEY;
@@ -63,7 +63,7 @@ export default {
             'apikey': SUPABASE_SERVICE_KEY,
           },
           body: JSON.stringify({
-            email: userId + '@workbuddy.local',
+            email: username + '@workbuddy.local',
             password: password,
           }),
         });
