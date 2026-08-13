@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js">
     </script>
     <style>
-        /* ===== 全局样式（与原版一致，仅微调） ===== */
+        /* ===== 全局样式 ===== */
         :root {
             --primary: #3b8cff;
             --primary-light: #e6f0ff;
@@ -35,7 +35,6 @@
             --shadow-lg: 0 12px 48px rgba(0, 20, 40, 0.14);
             --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-            --seat-cols: 8;
         }
         * {
             margin: 0;
@@ -2769,6 +2768,8 @@
         // ---------- 进入应用 ----------
         let currentUser = null;
         let appData = null;
+        // 缓存用户信息，避免反复从 localStorage 读取
+        let cachedUserInfo = null;
         let allStudents = [],
             seatData = [],
             attendanceRecords = {},
@@ -2925,7 +2926,6 @@
             appData.groupNotices = groupNotices;
             appData.evalRecords = evalRecords;
             appData.theme = appData.theme || '#3b8cff';
-            // 确保 aiConfig 存在
             if (!appData.aiConfig) appData.aiConfig = getDefaultUserData().aiConfig;
             saveUserData(currentUser, appData);
         }
@@ -2970,7 +2970,6 @@
             if (pageName === 'random') updateRandomUI();
             if (pageName === 'profile') renderProfile();
             if (pageName === 'evaluation') updateEvalStats();
-            // 🆕 加载 AI 配置
             if (pageName === 'data-manage') loadAIConfig();
 
             document.getElementById('sidebar').classList.remove('open');
@@ -3144,6 +3143,7 @@
             renderEvalRecords();
         }
 
+        // ===== 🔥 修复：登录后立即识别用户名，不再依赖切换主题 =====
         function updateHeader() {
             const now = new Date();
             const h = now.getHours();
@@ -3153,12 +3153,21 @@
             else if (h >= 14 && h < 18) greet = '🌤️ 下午好';
             else if (h >= 18 && h < 22) greet = '🌙 晚上好';
             else greet = '🌃 夜深了';
-            const user = getUsers()[currentUser];
+
+            // 优先使用缓存用户信息，避免重复读取 localStorage
+            let user = cachedUserInfo;
+            if (!user) {
+                // 如果没有缓存，从 localStorage 读取
+                const users = getUsers();
+                user = users[currentUser] || null;
+                if (user) cachedUserInfo = user;
+            }
+
             const displayName = user?.realname || '老师';
             document.getElementById('headerGreeting').innerHTML = `${greet}，<strong>${displayName}</strong>`;
             document.getElementById('headerDate').textContent = now.toLocaleDateString('zh-CN', { year: 'numeric',
                 month: 'long', day: 'numeric', weekday: 'long' });
-            // 同步侧边栏
+
             if (user) {
                 document.getElementById('userDisplayName').textContent = user.realname + '老师';
                 document.getElementById('userRoleDisplay').textContent = (user.role || '班主任') + ' · ' + (user.classname ||
@@ -3174,6 +3183,11 @@
                     avatarEl.innerHTML = initial;
                     avatarEl.style.background = stringToColor(user.realname || 'user');
                 }
+            } else {
+                // 如果没有用户信息，使用默认值，但不显示硬编码的"范老师"
+                document.getElementById('userDisplayName').textContent = '老师';
+                document.getElementById('userRoleDisplay').textContent = '班主任';
+                document.getElementById('sidebarClass').textContent = '未设置班级';
             }
         }
 
@@ -3588,7 +3602,7 @@
             alert('✅ 班委名单已更新！');
         }
 
-        // ---------- 座次表 ----------
+        // ===== 🔥 修复：座次表使用 11 列网格精确映射 =====
         function initSeats() {
             const rows = 8,
                 cols = 8;
@@ -3611,18 +3625,56 @@
 
         function renderSeating() {
             const container = document.getElementById('seatContainer');
-            if (seatData.length === 0) { container.innerHTML =
-                    '<div class="empty-state" style="grid-column:1/-1;"><p>暂无座位数据</p></div>'; return; }
-            const rows = seatData.length,
-                cols = seatData[0]?.length || 8;
-            let html = '';
-            for (let g = 0; g < 4; g++) {
-                const startCol = g * 2;
-                html += `<div class="seat-group-label" style="grid-column: ${startCol+1} / ${startCol+3};">第${g+1}组</div>`;
+            if (seatData.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>暂无座位数据</p></div>';
+                return;
             }
+
+            const rows = 8,
+                cols = 8;
+            // 8个座位列映射到11列网格中的位置（每两列一组，中间隔一列过道）
+            const seatColMap = [
+                [1, 2], // 座位列索引 0,1 -> 网格列 1,2
+                [4, 5], // 座位列索引 2,3 -> 网格列 4,5
+                [7, 8], // 座位列索引 4,5 -> 网格列 7,8
+                [10, 11] // 座位列索引 6,7 -> 网格列 10,11
+            ];
+            const aisleCols = [3, 6, 9]; // 过道列
+
+            let html = '';
+
+            // 1. 添加组标签（跨两列座位列）
+            const groupLabels = ['第一组', '第二组', '第三组', '第四组'];
+            groupLabels.forEach((label, g) => {
+                const start = seatColMap[g][0];
+                const end = seatColMap[g][1];
+                html += `<div class="seat-group-label" style="grid-column: ${start} / ${end + 1};">${label}</div>`;
+            });
+
+            // 2. 遍历每一行
             for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const seat = seatData[r]?.[c] || { empty: true, rowIdx: r, colIdx: c, id: 'empty-' + r + '-' + c };
+                const rowData = seatData[r] || [];
+                // 遍历 11 列
+                for (let gridCol = 1; gridCol <= 11; gridCol++) {
+                    // 判断是否是过道列
+                    if (aisleCols.includes(gridCol)) {
+                        html += `<div class="seat-aisle"></div>`;
+                        continue;
+                    }
+                    // 否则是座位列，找到对应的座位索引
+                    let seatColIdx = -1;
+                    for (let g = 0; g < seatColMap.length; g++) {
+                        if (seatColMap[g][0] === gridCol || seatColMap[g][1] === gridCol) {
+                            const offset = (gridCol === seatColMap[g][0]) ? 0 : 1;
+                            seatColIdx = g * 2 + offset;
+                            break;
+                        }
+                    }
+                    if (seatColIdx === -1) {
+                        html += `<div class="seat-item empty"><span class="seat-name">—</span></div>`;
+                        continue;
+                    }
+                    const seat = rowData[seatColIdx] || { empty: true, id: 'empty-' + r + '-' + seatColIdx };
                     let genderClass = 'gender-unknown';
                     if (!seat.empty) {
                         genderClass = seat.gender === '男' ? 'gender-male' : 'gender-female';
@@ -3630,7 +3682,7 @@
                     const cls = seat.empty ? 'seat-item empty' : `seat-item ${genderClass}`;
                     const draggable = seatEditMode && !seat.empty ? 'draggable="true"' : '';
                     const data = seat.empty ? '' :
-                        `data-id="${seat.id}" data-row="${r}" data-col="${c}" data-name="${seat.name}" data-gender="${seat.gender}"`;
+                        `data-id="${seat.id}" data-row="${r}" data-col="${seatColIdx}" data-name="${seat.name}" data-gender="${seat.gender}"`;
                     let content = '';
                     if (seat.empty) {
                         content = `<span class="seat-name">＋</span>`;
@@ -3649,11 +3701,9 @@
                                 ondrop="onSeatDrop(event)"
                                 onclick="seatEditMode && !this.classList.contains('empty') && alert('✏️ 编辑模式：拖拽调换座位')"
                               >${content}</div>`;
-                    if ((c + 1) % 2 === 0 && c < cols - 1) {
-                        html += `<div class="seat-aisle"></div>`;
-                    }
                 }
             }
+
             container.innerHTML = html;
             document.getElementById('seatEditHint').textContent = seatEditMode ? '✋ 拖拽学生卡片调换座位' : '点击「编辑模式」开启拖拽';
             renderUnseated();
@@ -5660,6 +5710,10 @@
             currentUser = username;
             const user = getUserData(username);
             appData = user.data || getDefaultUserData();
+            // ===== 缓存用户信息，避免反复读取 =====
+            const users = getUsers();
+            cachedUserInfo = users[username] || null;
+
             allStudents = appData.students || [];
             attendanceRecords = appData.attendance || {};
             gradeRecords = appData.grades || {};
@@ -5684,34 +5738,20 @@
                 teacherSchedule = JSON.parse(JSON.stringify(classSchedule));
             }
             if (appData.theme) setTheme(appData.theme, true);
-            // 确保 aiConfig 存在
             if (!appData.aiConfig) appData.aiConfig = getDefaultUserData().aiConfig;
 
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appContainer').classList.add('active');
 
-            const userInfo = getUsers()[username];
-            // 更新头像
-            const avatarEl = document.getElementById('userAvatar');
-            if (userInfo.avatar) {
-                avatarEl.innerHTML = `<img src="${userInfo.avatar}" alt="头像">`;
-                avatarEl.style.background = 'transparent';
-            } else {
-                const initial = userInfo.realname.charAt(0) || '👤';
-                avatarEl.innerHTML = initial;
-                avatarEl.style.background = stringToColor(userInfo.realname || 'user');
-            }
-            document.getElementById('userDisplayName').textContent = userInfo.realname + '老师';
-            document.getElementById('userRoleDisplay').textContent = (userInfo.role || '班主任') + ' · ' + (userInfo
-                .classname || '未设置班级');
-            document.getElementById('sidebarClass').textContent = userInfo.classname || '未设置班级';
+            // 更新头像和用户信息（先调用一次，确保立即显示）
+            updateHeader();
 
             initNavigation();
             renderAll();
             switchPage('dashboard');
             updateBadges();
-            updateHeader();
-            console.log(`✅ 已登录: ${username} （${userInfo.realname}）`);
+
+            console.log(`✅ 已登录: ${username} （${cachedUserInfo?.realname || '未知'}）`);
         }
 
         // ---------- 自动登录检查 & 清除旧数据 ----------
