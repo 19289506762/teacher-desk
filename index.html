@@ -3172,6 +3172,75 @@
                 showLogin();
             }
         }
+// ---------- 注销账户 ----------
+async function deleteAccount() {
+  if (!currentUser) {
+    alert('请先登录');
+    return;
+  }
+
+  // 第一次确认
+  if (!confirm('⚠️ 确定要注销账户吗？\n\n此操作将永久删除：\n- 所有学生信息\n- 所有成绩数据\n- 所有作业记录\n- 所有考勤记录\n- 所有评价记录\n- 所有个人设置\n\n此操作不可恢复！')) {
+    return;
+  }
+
+  // 输入密码验证
+  const password = prompt('请输入您的密码以确认注销：');
+  if (password === null) return;
+  if (!password || password.trim() === '') {
+    alert('密码不能为空');
+    return;
+  }
+
+  // 显示加载状态
+  const btn = document.querySelector('.btn-danger');
+  const originalText = btn?.textContent || '注销';
+  if (btn) { btn.textContent = '⏳ 处理中...'; btn.disabled = true; }
+
+  try {
+    // 第一步：调用 Worker 删除 Auth 用户（验证密码）
+    const workerResponse = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        password: password.trim(),
+      }),
+    });
+
+    const workerData = await workerResponse.json();
+
+    if (!workerResponse.ok) {
+      alert('❌ 注销失败：' + (workerData.error || '未知错误'));
+      return;
+    }
+
+    // 第二步：删除 profiles（触发器会自动删除所有业务数据）
+    const { error: deleteError } = await supabaseClient
+      .from('profiles')
+      .delete()
+      .eq('id', currentUser.id);
+
+    if (deleteError) {
+      alert('⚠️ 部分数据删除失败，但账号已被注销。\n请联系管理员手动清理残留数据。');
+      return;
+    }
+
+    // 成功
+    alert('✅ 账户已成功注销，所有数据已清除。');
+    await supabaseClient.auth.signOut();
+    localStorage.removeItem('classTeacher_session_v7');
+    window.location.reload();
+
+  } catch (error) {
+    alert('❌ 注销请求失败：' + error.message);
+  } finally {
+    if (btn) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+}
 
         // ---------- 进入应用 ----------
         async function enterApp() {
