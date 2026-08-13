@@ -2519,11 +2519,21 @@
     // 完整 JavaScript 实现 - Supabase 云端版（多端同步）
     // ================================================================
 
-    // ---------- Supabase 配置 ----------
-    const SUPABASE_URL = 'https://vmvwlqoadwusvivqffjb.supabaseClient.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_GC5nLYocpJ03_8zvTuY3dg_mnSUE3RU';
-// 删除原来的声明，改用 window 挂载
-window.supabase = supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ================================================================
+// Supabase 配置 - 终极修复版（全局可用，无重复声明）
+// ================================================================
+const SUPABASE_URL = 'https://vmvwlqoadwusvivqffjb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_GC5nLYocpJ03_8zvTuY3dg_mnSUE3RU';
+
+// 使用 window 挂载，确保全局唯一
+if (!window.__supabase) {
+    window.__supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+// 用短名称引用，所有函数都用这个
+const supabase = window.__supabase;
+
+// 验证是否成功（控制台可查看）
+console.log('Supabase 客户端已初始化:', supabase);
 
     // ---------- 存储常量 ----------
     const STORAGE_KEY_SESSION = 'classTeacher_session_v7';
