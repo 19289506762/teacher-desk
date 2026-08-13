@@ -2726,22 +2726,22 @@ console.log('Supabase 客户端已初始化:', supabase);
                 scheduleRes,
                 settingsRes
             ] = await Promise.all([
-                supabaseClient.from('students').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('seats').select('data').eq('user_id', currentUser.id).maybeSingle(),
-                supabaseClient.from('attendance').select('date, data').eq('user_id', currentUser.id),
-                supabaseClient.from('grades').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('homework').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('notices').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('leaves').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('committee').select('data').eq('user_id', currentUser.id).maybeSingle(),
-                supabaseClient.from('profile_records').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('visits').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('meetings').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('group_notices').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('eval_records').select('*').eq('user_id', currentUser.id),
-                supabaseClient.from('schedule').select('class_schedule, teacher_schedule').eq('user_id', currentUser.id)
+                supabase.from('students').select('*').eq('user_id', currentUser.id),
+                supabase.from('seats').select('data').eq('user_id', currentUser.id).maybeSingle(),
+                supabase.from('attendance').select('date, data').eq('user_id', currentUser.id),
+                supabase.from('grades').select('*').eq('user_id', currentUser.id),
+                supabase.from('homework').select('*').eq('user_id', currentUser.id),
+                supabase.from('notices').select('*').eq('user_id', currentUser.id),
+                supabase.from('leaves').select('*').eq('user_id', currentUser.id),
+                supabase.from('committee').select('data').eq('user_id', currentUser.id).maybeSingle(),
+                supabase.from('profile_records').select('*').eq('user_id', currentUser.id),
+                supabase.from('visits').select('*').eq('user_id', currentUser.id),
+                supabase.from('meetings').select('*').eq('user_id', currentUser.id),
+                supabase.from('group_notices').select('*').eq('user_id', currentUser.id),
+                supabase.from('eval_records').select('*').eq('user_id', currentUser.id),
+                supabase.from('schedule').select('class_schedule, teacher_schedule').eq('user_id', currentUser.id)
                 .maybeSingle(),
-                supabaseClient.from('user_settings').select('theme, ai_config, picked_history').eq('user_id', currentUser.id)
+                supabase.from('user_settings').select('theme, ai_config, picked_history').eq('user_id', currentUser.id)
                 .maybeSingle()
             ]);
 
@@ -2842,18 +2842,18 @@ console.log('Supabase 客户端已初始化:', supabase);
             // 并行保存所有数据
             await Promise.all([
                 // 保存学生（全量替换 - 先删后插）
-                supabaseClient.from('students').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('students').insert(allStudents.map(s => ({ ...s, user_id: currentUser.id }))),
+                supabase.from('students').delete().eq('user_id', currentUser.id),
+                supabase.from('students').insert(allStudents.map(s => ({ ...s, user_id: currentUser.id }))),
 
                 // 保存座次
-                supabaseClient.from('seats').upsert({
+                supabase.from('seats').upsert({
                     user_id: currentUser.id,
                     data: seatData
                 }, { onConflict: 'user_id' }),
 
                 // 保存考勤（全量替换）
-                supabaseClient.from('attendance').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('attendance').insert(
+                supabase.from('attendance').delete().eq('user_id', currentUser.id),
+                supabase.from('attendance').insert(
                     Object.keys(attendanceRecords).map(date => ({
                         user_id: currentUser.id,
                         date: date,
@@ -2862,8 +2862,8 @@ console.log('Supabase 客户端已初始化:', supabase);
                 ),
 
                 // 保存成绩（全量替换）
-                supabaseClient.from('grades').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('grades').insert(
+                supabase.from('grades').delete().eq('user_id', currentUser.id),
+                supabase.from('grades').insert(
                     (() => {
                         const rows = [];
                         Object.keys(gradeRecords).forEach(exam => {
@@ -2884,52 +2884,52 @@ console.log('Supabase 客户端已初始化:', supabase);
                 ),
 
                 // 保存作业（全量替换）
-                supabaseClient.from('homework').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('homework').insert(homeworkList.map(h => ({ ...h, user_id: currentUser.id }))),
+                supabase.from('homework').delete().eq('user_id', currentUser.id),
+                supabase.from('homework').insert(homeworkList.map(h => ({ ...h, user_id: currentUser.id }))),
 
                 // 保存通知（全量替换）
-                supabaseClient.from('notices').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('notices').insert(noticeItems.map(n => ({ ...n, user_id: currentUser.id }))),
+                supabase.from('notices').delete().eq('user_id', currentUser.id),
+                supabase.from('notices').insert(noticeItems.map(n => ({ ...n, user_id: currentUser.id }))),
 
                 // 保存请假（全量替换）
-                supabaseClient.from('leaves').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('leaves').insert(leaveRecords.map(l => ({ ...l, user_id: currentUser.id }))),
+                supabase.from('leaves').delete().eq('user_id', currentUser.id),
+                supabase.from('leaves').insert(leaveRecords.map(l => ({ ...l, user_id: currentUser.id }))),
 
                 // 保存班委
-                supabaseClient.from('committee').upsert({
+                supabase.from('committee').upsert({
                     user_id: currentUser.id,
                     data: committeeList
                 }, { onConflict: 'user_id' }),
 
                 // 保存学生记录
-                supabaseClient.from('profile_records').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('profile_records').insert(profileRecords.map(r => ({ ...r, user_id: currentUser.id }))),
+                supabase.from('profile_records').delete().eq('user_id', currentUser.id),
+                supabase.from('profile_records').insert(profileRecords.map(r => ({ ...r, user_id: currentUser.id }))),
 
                 // 保存家访
-                supabaseClient.from('visits').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('visits').insert(visits.map(v => ({ ...v, user_id: currentUser.id }))),
+                supabase.from('visits').delete().eq('user_id', currentUser.id),
+                supabase.from('visits').insert(visits.map(v => ({ ...v, user_id: currentUser.id }))),
 
                 // 保存家长会
-                supabaseClient.from('meetings').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('meetings').insert(meetings.map(m => ({ ...m, user_id: currentUser.id }))),
+                supabase.from('meetings').delete().eq('user_id', currentUser.id),
+                supabase.from('meetings').insert(meetings.map(m => ({ ...m, user_id: currentUser.id }))),
 
                 // 保存群通知
-                supabaseClient.from('group_notices').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('group_notices').insert(groupNotices.map(g => ({ ...g, user_id: currentUser.id }))),
+                supabase.from('group_notices').delete().eq('user_id', currentUser.id),
+                supabase.from('group_notices').insert(groupNotices.map(g => ({ ...g, user_id: currentUser.id }))),
 
                 // 保存评价记录
-                supabaseClient.from('eval_records').delete().eq('user_id', currentUser.id),
-                supabaseClient.from('eval_records').insert(evalRecords.map(e => ({ ...e, user_id: currentUser.id }))),
+                supabase.from('eval_records').delete().eq('user_id', currentUser.id),
+                supabase.from('eval_records').insert(evalRecords.map(e => ({ ...e, user_id: currentUser.id }))),
 
                 // 保存课程表
-                supabaseClient.from('schedule').upsert({
+                supabase.from('schedule').upsert({
                     user_id: currentUser.id,
                     class_schedule: classSchedule,
                     teacher_schedule: teacherSchedule
                 }, { onConflict: 'user_id' }),
 
                 // 保存设置
-                supabaseClient.from('user_settings').upsert({
+                supabase.from('user_settings').upsert({
                     user_id: currentUser.id,
                     theme: document.documentElement.style.getPropertyValue('--primary') || '#3b8cff',
                     ai_config: appData?.aiConfig || { provider: 'qwen', model: 'qwen-plus', apiKey: '',
@@ -2997,7 +2997,7 @@ console.log('Supabase 客户端已初始化:', supabase);
         const email = username + '@workbuddy.local';
 
         try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
@@ -3057,7 +3057,7 @@ console.log('Supabase 客户端已初始化:', supabase);
             }
 
             // 注册用户
-            const { data, error } = await supabaseClient.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
             });
@@ -3121,7 +3121,7 @@ console.log('Supabase 客户端已初始化:', supabase);
             // 或者直接修改密码（如果知道用户ID，但这里无法获取）
             // 实际更好的做法是使用 Supabase 的 resetPasswordForEmail
             const email = username + '@workbuddy.local';
-            const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: window.location.origin + '/reset-password.html'
             });
             if (resetError) {
@@ -3166,7 +3166,7 @@ console.log('Supabase 客户端已初始化:', supabase);
     function handleLogout() {
         if (confirm('确定退出？')) {
             clearSession();
-            supabaseClient.auth.signOut();
+            supabase.auth.signOut();
             currentUser = null;
             currentUserProfile = null;
             isDataLoaded = false;
@@ -3391,7 +3391,7 @@ console.log('Supabase 客户端已初始化:', supabase);
         }
 
         try {
-            const { error } = await supabaseClient.auth.updateUser({
+            const { error } = await supabase.auth.updateUser({
                 password: new1
             });
             if (error) throw error;
@@ -5850,7 +5850,7 @@ console.log('Supabase 客户端已初始化:', supabase);
 
                 // 头像恢复（如果是当前用户的备份）
                 if (data.user && data.user.avatar && currentUser) {
-                    supabaseClient.from('profiles').update({ avatar: data.user.avatar }).eq('id', currentUser.id).then(() => {
+                    supabase.from('profiles').update({ avatar: data.user.avatar }).eq('id', currentUser.id).then(() => {
                         if (currentUserProfile) currentUserProfile.avatar = data.user.avatar;
                         updateHeader();
                     });
@@ -6074,7 +6074,7 @@ console.log('Supabase 客户端已初始化:', supabase);
         const session = getCurrentSession();
         if (session && session.userId) {
             // 尝试恢复登录状态
-            supabaseClient.auth.getUser().then(async ({ data, error }) => {
+            supabase.auth.getUser().then(async ({ data, error }) => {
                 if (!error && data.user) {
                     currentUser = data.user;
                     const profile = await loadUserProfile(data.user.id);
