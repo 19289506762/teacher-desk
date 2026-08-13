@@ -1,8 +1,9 @@
+// _worker.js - 完整版（API 代理 + 静态页面托管）
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // 只有 /api 路径才处理
+    // ----- 1. AI API 代理 -----
     if (url.pathname === '/api') {
       if (request.method !== 'POST') {
         return new Response('Method Not Allowed', { status: 405 });
@@ -29,17 +30,35 @@ export default {
 
         const data = await response.json();
         return new Response(JSON.stringify(data), {
-          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          },
         });
       } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({ error: '代理请求失败：' + error.message }), {
           status: 500,
-          headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          },
         });
       }
     }
 
-    // 其他请求走静态托管
-    return new Response('Not Found', { status: 404 });
+    // ----- 2. 静态页面托管（重要！） -----
+    // 尝试从静态资源中获取请求的文件
+    try {
+      // 如果是根路径，直接返回 index.html
+      if (url.pathname === '/' || url.pathname === '') {
+        return await env.ASSETS.fetch(new Request(url.origin + '/index.html', request));
+      }
+      // 其他静态资源（.html, .css, .js, .png 等）正常返回
+      return await env.ASSETS.fetch(request);
+    } catch (error) {
+      // 如果静态资源不存在，返回 404
+      return new Response('Not Found', { status: 404 });
+    }
   }
 };
