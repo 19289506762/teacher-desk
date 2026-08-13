@@ -5948,34 +5948,6 @@ async function deleteAccount() {
             alert('✅ 已清空所有数据');
         }
 
-    const btn = document.querySelector('.btn-danger[onclick*="deleteAccount"]');
-    const originalText = btn?.textContent || '注销';
-    if (btn) { btn.textContent = '⏳ 处理中...'; btn.disabled = true; }
-
-    try {
-        const response = await fetch('/api/delete-account', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: currentUser.id,
-                password: password.trim(),
-            }),
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || '注销失败');
-
-        alert('✅ 账户已成功注销，所有数据已清除。');
-        await supabaseClient.auth.signOut();
-        localStorage.removeItem('classTeacher_session_v7');
-        window.location.reload();
-    } catch (error) {
-        alert('❌ 注销失败：' + error.message);
-    } finally {
-        if (btn) { btn.textContent = originalText; btn.disabled = false; }
-    }
-}
-
         function importStudentExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
