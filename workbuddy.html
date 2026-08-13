@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>班主任工作台 · 智能完整版</title>
+    <title>班主任工作台 · 动态版</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js">
     </script>
     <style>
-        /* ===== 全局样式 ===== */
+        /* ===== 全局样式（与原版一致，仅微调） ===== */
         :root {
             --primary: #3b8cff;
             --primary-light: #e6f0ff;
@@ -349,7 +349,7 @@
             background-position: center;
             background-color: #6c5ce7;
             overflow: hidden;
-            border: 2px solid rgba(255,255,255,0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
         }
         .sidebar-footer .avatar:hover {
             transform: scale(1.05);
@@ -841,7 +841,6 @@
             max-width: 1100px;
             grid-template-columns: repeat(11, 1fr);
         }
-        /* 过道：每两列之后加一个空隙 */
         .seat-grid .seat-aisle {
             grid-column: span 1;
             min-width: 12px;
@@ -908,7 +907,6 @@
             color: #d0d5dd;
             font-weight: 400;
         }
-        /* 性别配色 */
         .seat-item.gender-male {
             background: linear-gradient(145deg, #3b8cff, #2a6fd4);
             border-color: #2a6fd4;
@@ -2032,13 +2030,13 @@
             <div class="logo">
                 <span class="logo-icon">📋</span>
                 <h1>班主任工作台</h1>
-                <p>Class Teacher Pro · 智能完整版</p>
+                <p>Class Teacher Pro · 动态识别 + AI</p>
             </div>
             <!-- 登录表单 -->
             <div id="loginForm">
                 <div class="form-group">
                     <label>👤 用户名</label>
-                    <input type="text" id="loginUsername" placeholder="请输入用户名" value="fan">
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" value="demo">
                 </div>
                 <div class="form-group">
                     <label>🔒 密码</label>
@@ -2051,16 +2049,16 @@
                 </div>
                 <div class="error-msg" id="loginError"></div>
                 <div class="demo-hint">
-                    💡 <strong>使用说明：</strong> 每位老师独立账号，数据互不干扰。<br>
-                    登录后可导入自己的学生、成绩、作业等数据。<br>
-                    <span style="color:var(--text-light);">演示账号: fan / 123456</span>
+                    💡 <strong>动态识别说明：</strong> 登录后系统会使用您的<strong>真实姓名</strong>进行打招呼。<br>
+                    注册时请填写真实姓名，登录后顶部和侧边栏将自动显示您的称呼。<br>
+                    <span style="color:var(--text-light);">演示账号: demo / 123456</span>
                 </div>
             </div>
             <!-- 注册表单 -->
             <div id="registerForm" style="display:none;">
                 <div class="form-group"><label>👤 用户名</label><input type="text" id="regUsername" placeholder="请设置用户名"></div>
                 <div class="form-group"><label>🔒 密码</label><input type="password" id="regPassword" placeholder="请设置密码（至少6位）"></div>
-                <div class="form-group"><label>📚 真实姓名</label><input type="text" id="regRealname" placeholder="您的姓名"></div>
+                <div class="form-group"><label>📚 真实姓名 <span style="color:var(--danger);">*</span></label><input type="text" id="regRealname" placeholder="您的姓名（将用于显示）"></div>
                 <div class="form-group"><label>🏫 所教班级</label><input type="text" id="regClass" placeholder="如：高一(3)班"></div>
                 <button class="btn btn-primary" onclick="handleRegister()">📝 注 册</button>
                 <div class="login-extra"><span>已有账号？<a onclick="showLogin()">返回登录</a></span></div>
@@ -2085,8 +2083,8 @@
             <div class="sidebar-logo" onclick="switchPage('dashboard')">
                 <div class="logo-icon">📋</div>
                 <div>
-                    <div class="logo-text">班主任工作台</div>
-                    <div class="logo-sub" id="sidebarClass">高一(3)班</div>
+                    <div class="logo-text">WorkBuddy</div>
+                    <div class="logo-sub" id="sidebarClass">未设置班级</div>
                 </div>
             </div>
             <nav class="sidebar-nav" id="sidebarNav">
@@ -2112,10 +2110,10 @@
                 <div class="nav-item" data-page="exam-paper"><span class="nav-icon">📄</span> 试卷分析</div>
             </nav>
             <div class="sidebar-footer" id="sidebarFooter">
-                <div class="avatar" id="userAvatar" style="background:#6c5ce7;">范</div>
+                <div class="avatar" id="userAvatar" style="background:#6c5ce7;">👤</div>
                 <div class="user-info" id="userInfoClick">
-                    <span id="userDisplayName">范老师</span>
-                    <span id="userRoleDisplay">班主任 · 物理</span>
+                    <span id="userDisplayName">老师</span>
+                    <span id="userRoleDisplay">班主任</span>
                 </div>
                 <button class="logout-btn" onclick="handleLogout()">退出</button>
             </div>
@@ -2131,7 +2129,7 @@
                         <div class="breadcrumb">首页 &gt; <span id="breadcrumbCurrent">工作台总览</span></div>
                     </div>
                     <span class="date-display" id="headerDate"></span>
-                    <span class="greeting" id="headerGreeting">👋 下午好，<strong>范老师</strong></span>
+                    <span class="greeting" id="headerGreeting">👋 欢迎，<strong>老师</strong></span>
                 </div>
                 <div class="topbar-actions">
                     <div class="theme-picker">
@@ -2151,7 +2149,7 @@
             </header>
 
             <div class="content-area" id="contentArea">
-                <!-- 页面：工作台总览 -->
+                <!-- ===== 工作台总览 ===== -->
                 <div class="page active" id="page-dashboard">
                     <div class="stats-grid">
                         <div class="stat-card" onclick="switchPage('students')">
@@ -2235,7 +2233,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：座次表 (固定8×8) -->
+                <!-- ===== 座次表 ===== -->
                 <div class="page" id="page-seating">
                     <div class="card mb-12">
                         <div class="flex-between">
@@ -2260,7 +2258,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：学生管理 -->
+                <!-- ===== 学生管理 ===== -->
                 <div class="page" id="page-students">
                     <div class="card mb-12">
                         <div class="flex-wrap">
@@ -2285,7 +2283,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：考勤·请假 -->
+                <!-- ===== 考勤·请假 ===== -->
                 <div class="page" id="page-attendance">
                     <div class="card mb-12">
                         <div class="flex-wrap">
@@ -2309,7 +2307,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：课程表 -->
+                <!-- ===== 课程表 ===== -->
                 <div class="page" id="page-schedule">
                     <div class="card mb-12">
                         <div class="flex-between">
@@ -2330,7 +2328,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：作业管理 -->
+                <!-- ===== 作业管理 ===== -->
                 <div class="page" id="page-homework">
                     <div class="card mb-12">
                         <div class="flex-between"><span class="card-title">📝 作业管理</span><div class="flex-wrap"><span class="text-muted" id="homeworkTotalLabel">共 0 次作业</span><button class="btn btn-primary btn-sm" onclick="openHomeworkModal()">＋ 布置作业</button></div></div>
@@ -2344,7 +2342,7 @@
                     <div class="homework-list" id="homeworkList"></div>
                 </div>
 
-                <!-- 页面：成绩管理 -->
+                <!-- ===== 成绩管理 ===== -->
                 <div class="page" id="page-grades">
                     <div class="card mb-12">
                         <div class="flex-wrap">
@@ -2366,7 +2364,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：期末评语 -->
+                <!-- ===== 期末评语 ===== -->
                 <div class="page" id="page-comments">
                     <div class="card mb-12">
                         <div class="flex-between"><span class="card-title">✍️ 期末评语批量生成 · AI 智能匹配</span><div class="flex-wrap"><span class="text-muted" id="commentStats">已生成 0/0</span><button class="btn btn-primary btn-sm" onclick="generateComments()">⚡ 一键生成</button><button class="btn btn-sm btn-outline" onclick="copyAllComments()">📋 复制全部</button></div></div>
@@ -2374,7 +2372,7 @@
                     <div class="grid-2" id="commentGrid"></div>
                 </div>
 
-                <!-- 页面：随机点名 -->
+                <!-- ===== 随机点名 ===== -->
                 <div class="page" id="page-random">
                     <div class="random-pick">
                         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -2397,7 +2395,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：学生综合分析 -->
+                <!-- ===== 学生综合分析 ===== -->
                 <div class="page" id="page-profile">
                     <div class="card mb-12">
                         <div class="flex-between">
@@ -2408,7 +2406,7 @@
                     <div class="grid-2" id="profileGrid"><div class="empty-state" style="grid-column:1/-1;"><span class="empty-icon">📈</span><h3>暂无学生数据</h3><p>请先导入学生，系统将自动生成综合分析报告</p></div></div>
                 </div>
 
-                <!-- 页面：家校沟通 -->
+                <!-- ===== 家校沟通 ===== -->
                 <div class="page" id="page-contacts">
                     <div class="contact-stats">
                         <div class="contact-stat-card"><div class="cs-value" id="contactTotal">0</div><div class="cs-label">家长台账</div><div class="cs-sub">联系方式完整 <span id="contactComplete">0</span> 户</div></div>
@@ -2446,7 +2444,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：通知公告 -->
+                <!-- ===== 通知公告 ===== -->
                 <div class="page" id="page-notices">
                     <div class="card mb-12">
                         <div class="flex-wrap"><button class="btn btn-primary btn-sm" onclick="openNoticeModal()">＋ 发布新通知</button><span class="text-muted">所有通知将推送给班级学生及家长</span></div>
@@ -2454,7 +2452,7 @@
                     <div class="card"><div class="card-header"><span class="card-title">📢 通知列表</span></div><ul class="notice-list" id="noticeList"></ul></div>
                 </div>
 
-                <!-- 页面：班级评价管理 -->
+                <!-- ===== 班级评价管理 ===== -->
                 <div class="page" id="page-evaluation">
                     <div class="card mb-12">
                         <div class="flex-between"><span class="card-title">⭐ 班级评价管理 · 从日常记录到成长报告</span><div class="flex-wrap"><span class="text-muted">记录总数 <strong style="color:var(--text);" id="evalTotal">0</strong> 条</span><button class="btn btn-sm btn-primary" onclick="openEvalRecord()">＋ 新建记录</button></div></div>
@@ -2480,7 +2478,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：数据管理 -->
+                <!-- ===== 数据管理 ===== -->
                 <div class="page" id="page-data-manage">
                     <div class="card mb-12">
                         <div class="card-header"><span class="card-title">💾 数据管理 · 智能导入与导出</span></div>
@@ -2539,7 +2537,7 @@
                     </div>
                 </div>
 
-                <!-- 页面：试卷分析 -->
+                <!-- ===== 试卷分析 ===== -->
                 <div class="page" id="page-exam-paper">
                     <div class="card mb-12">
                         <div class="flex-between">
@@ -2578,7 +2576,7 @@
 
     <script>
         // ================================================================
-        // 完整 JavaScript 实现 - 优化版：固定8×8座位、增强导入解析、课表独立校验、头像上传 + AI 接入
+        // 完整 JavaScript 实现 - 动态身份识别版 + AI 功能
         // ================================================================
 
         // ---------- 存储常量 ----------
@@ -2685,7 +2683,7 @@
             const realname = document.getElementById('regRealname').value.trim();
             const classname = document.getElementById('regClass').value.trim();
             const errorEl = document.getElementById('regError');
-            if (!username || !password || !realname) { errorEl.textContent = '⚠️ 请填写完整信息'; return; }
+            if (!username || !password || !realname) { errorEl.textContent = '⚠️ 请填写完整信息（真实姓名必填）'; return; }
             if (password.length < 6) { errorEl.textContent = '⚠️ 密码至少6位'; return; }
             const users = getUsers();
             if (users[username]) { errorEl.textContent = '❌ 用户名已存在'; return; }
@@ -2868,7 +2866,7 @@
             return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
         }
 
-        // ---------- 字段别名映射（用于导入） ----------
+        // ---------- 字段别名映射 ----------
         const FIELD_ALIASES = {
             '学号': ['学号', '编号', 'ID', 'id', '序号'],
             '姓名': ['姓名', '名字', 'name'],
@@ -3000,7 +2998,7 @@
             if (!user) return;
             const avatarHtml = user.avatar ?
                 `<img src="${user.avatar}" alt="头像">` :
-                `<span style="font-size:32px;color:#fff;">${user.realname.charAt(0)}</span>`;
+                `<span style="font-size:32px;color:#fff;">${user.realname.charAt(0) || '👤'}</span>`;
             const html = `
                 <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
                     <div class="modal" style="max-width:500px;">
@@ -3015,7 +3013,7 @@
                         </div>
                         <div class="user-profile-grid">
                             <div class="profile-item full-width" style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:2px solid var(--border);">
-                                <div style="width:64px;height:64px;border-radius:50%;background:${stringToColor(user.realname)};display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700;flex-shrink:0;">${user.realname.charAt(0)}</div>
+                                <div style="width:64px;height:64px;border-radius:50%;background:${stringToColor(user.realname)};display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700;flex-shrink:0;">${user.realname.charAt(0) || '👤'}</div>
                                 <div><div style="font-size:20px;font-weight:700;">${user.realname}</div><div style="color:var(--text-secondary);font-size:13px;">${user.role || '班主任'}</div></div>
                             </div>
                             <div class="profile-item"><span class="label">用户名</span><span class="value">${user.username}</span></div>
@@ -3071,11 +3069,12 @@
                 user.avatar = null;
                 saveUsers(users);
                 const avatarEl = document.getElementById('userAvatar');
-                avatarEl.innerHTML = user.realname.charAt(0);
-                avatarEl.style.background = stringToColor(user.realname);
+                const initial = user.realname.charAt(0) || '👤';
+                avatarEl.innerHTML = initial;
+                avatarEl.style.background = stringToColor(user.realname || 'user');
                 const preview = document.getElementById('avatarPreview');
                 if (preview) {
-                    preview.innerHTML = `<span style="font-size:32px;color:#fff;">${user.realname.charAt(0)}</span>`;
+                    preview.innerHTML = `<span style="font-size:32px;color:#fff;">${initial}</span>`;
                 }
                 alert('✅ 头像已移除');
             }
@@ -3155,9 +3154,27 @@
             else if (h >= 18 && h < 22) greet = '🌙 晚上好';
             else greet = '🌃 夜深了';
             const user = getUsers()[currentUser];
-            document.getElementById('headerGreeting').innerHTML = `${greet}，<strong>${user?.realname||'老师'}</strong>`;
+            const displayName = user?.realname || '老师';
+            document.getElementById('headerGreeting').innerHTML = `${greet}，<strong>${displayName}</strong>`;
             document.getElementById('headerDate').textContent = now.toLocaleDateString('zh-CN', { year: 'numeric',
                 month: 'long', day: 'numeric', weekday: 'long' });
+            // 同步侧边栏
+            if (user) {
+                document.getElementById('userDisplayName').textContent = user.realname + '老师';
+                document.getElementById('userRoleDisplay').textContent = (user.role || '班主任') + ' · ' + (user.classname ||
+                    '未设置班级');
+                document.getElementById('sidebarClass').textContent = user.classname || '未设置班级';
+                // 头像
+                const avatarEl = document.getElementById('userAvatar');
+                if (user.avatar) {
+                    avatarEl.innerHTML = `<img src="${user.avatar}" alt="头像">`;
+                    avatarEl.style.background = 'transparent';
+                } else {
+                    const initial = user.realname.charAt(0) || '👤';
+                    avatarEl.innerHTML = initial;
+                    avatarEl.style.background = stringToColor(user.realname || 'user');
+                }
+            }
         }
 
         function updateBadges() {
@@ -3506,7 +3523,7 @@
             alert(`✅ 成功导入 ${count} 名学生！`);
         }
 
-        // 班委
+        // ---------- 班委 ----------
         function renderCommittee() {
             const container = document.getElementById('committeeContainer');
             const roles = ['班长', '副班长', '学习委员', '纪律委员', '体育委员', '文艺委员', '劳动委员', '宣传委员', '生活委员', '安全委员'];
@@ -3571,7 +3588,7 @@
             alert('✅ 班委名单已更新！');
         }
 
-        // ---------- 座次表 (固定8×8) ----------
+        // ---------- 座次表 ----------
         function initSeats() {
             const rows = 8,
                 cols = 8;
@@ -3599,7 +3616,6 @@
             const rows = seatData.length,
                 cols = seatData[0]?.length || 8;
             let html = '';
-            // 添加组标签（每两列一组，共4组）
             for (let g = 0; g < 4; g++) {
                 const startCol = g * 2;
                 html += `<div class="seat-group-label" style="grid-column: ${startCol+1} / ${startCol+3};">第${g+1}组</div>`;
@@ -3633,7 +3649,6 @@
                                 ondrop="onSeatDrop(event)"
                                 onclick="seatEditMode && !this.classList.contains('empty') && alert('✏️ 编辑模式：拖拽调换座位')"
                               >${content}</div>`;
-                    // 每两列后插入过道（除了最后一组后面）
                     if ((c + 1) % 2 === 0 && c < cols - 1) {
                         html += `<div class="seat-aisle"></div>`;
                     }
@@ -3710,7 +3725,6 @@
                 if (seatMap[s.id]) {
                     s.seat = seatMap[s.id];
                 } else {
-                    // 如果学生不在座位表中，清空其seat字段（会显示在未就座列表）
                     if (s.seat) s.seat = '';
                 }
             });
@@ -4412,6 +4426,95 @@
             }, 100);
         }
 
+        // ===== 🆕 AI 配置管理 =====
+        function loadAIConfig() {
+            if (!appData || !appData.aiConfig) {
+                if (appData) appData.aiConfig = getDefaultUserData().aiConfig;
+                return;
+            }
+            const cfg = appData.aiConfig;
+            document.getElementById('aiModel').value = cfg.model || 'qwen-plus';
+            document.getElementById('aiApiKey').value = cfg.apiKey || '';
+            document.getElementById('aiBaseUrl').value = cfg.baseUrl || '';
+            const statusEl = document.getElementById('aiStatus');
+            if (cfg.enabled) {
+                statusEl.textContent = '✅ 已启用';
+                statusEl.style.color = 'var(--success)';
+            } else {
+                statusEl.textContent = '⛔ 未启用';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        function saveAIConfig() {
+            if (!appData) { alert('系统未就绪'); return; }
+            const model = document.getElementById('aiModel').value.trim();
+            const apiKey = document.getElementById('aiApiKey').value.trim();
+            const baseUrl = document.getElementById('aiBaseUrl').value.trim();
+            if (!model) {
+                alert('⚠️ 请填写模型名称（如 qwen-plus）');
+                return;
+            }
+            const oldCfg = appData.aiConfig || {};
+            appData.aiConfig = {
+                provider: 'qwen',
+                model: model,
+                apiKey: apiKey || oldCfg.apiKey || '',
+                baseUrl: baseUrl || oldCfg.baseUrl || '',
+                enabled: true
+            };
+            autoSave();
+            const statusEl = document.getElementById('aiStatus');
+            statusEl.textContent = '✅ 已保存并启用';
+            statusEl.style.color = 'var(--success)';
+            alert('✅ AI 配置已保存！');
+        }
+
+        // ===== 🆕 统一 AI 调用引擎（通过 Netlify Functions） =====
+        async function callAI(prompt, systemPrompt = '你是一位经验丰富的班主任。') {
+            const cfg = appData?.aiConfig;
+            if (!cfg || !cfg.enabled) {
+                console.warn('AI 未启用，返回模拟数据');
+                return null;
+            }
+
+            const requestBody = {
+                model: cfg.model || 'qwen-plus',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000,
+            };
+            if (cfg.apiKey) {
+                requestBody.apiKey = cfg.apiKey;
+            }
+
+            const baseUrl = cfg.baseUrl || '/.netlify/functions/api';
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    console.error('代理请求失败:', response.status, await response.text());
+                    return null;
+                }
+
+                const data = await response.json();
+                const content = data.choices?.[0]?.message?.content || '';
+                return content.trim();
+            } catch (error) {
+                console.error('AI 调用异常:', error);
+                return null;
+            }
+        }
+
         // ---------- 期末评语 ----------
         async function generateComments() {
             if (allStudents.length === 0) { alert('请先导入学生数据'); return; }
@@ -4419,7 +4522,7 @@
             // --- 🆕 尝试 AI 生成（非阻塞，失败则走老逻辑） ---
             const cfg = appData?.aiConfig;
             if (cfg?.enabled) {
-                const useAI = confirm('检测到 AI 配置，是否使用 AI 智能生成评语？（点击“取消”将使用本地模板）');
+                const useAI = confirm('检测到 AI 配置，是否使用 AI 智能生成评语？（点击"取消"将使用本地模板）');
                 if (useAI) {
                     const studentSummaries = allStudents.slice(0, 30).map(s => {
                         const scores = gradeSubjects.map(sub => {
@@ -4853,7 +4956,7 @@
             const content = document.getElementById('prContent').value.trim();
             if (!sid || !content) { alert('请填写完整信息'); return; }
             profileRecords.push({ id: 'pr_' + Date.now(), studentId: sid, type, date, content, createdAt: Date
-                .now() });
+                    .now() });
             closeModal();
             renderProfile();
             autoSave();
@@ -5293,7 +5396,7 @@
             const date = document.getElementById('evalDate').value;
             if (!sid || !content) { alert('请填写完整信息'); return; }
             evalRecords.push({ id: 'ev_' + Date.now(), studentId: sid, dim, content, date, createdAt: Date
-                .now() });
+                    .now() });
             closeModal();
             updateEvalStats();
             autoSave();
@@ -5452,7 +5555,7 @@
             if (allStudents.length === 0) { alert('暂无学生数据'); return; }
             const header = ['学号', '姓名', '性别', '座位', '职务', '家长姓名', '家长关系', '家长电话', '住址', '微信', '备注'];
             const rows = allStudents.map(s => [s.id, s.name, s.gender, s.seat, s.role, s.parentName, s.parentRelation, s
-                .parentPhone, s.address, s.wechat, s.parentNote
+                    .parentPhone, s.address, s.wechat, s.parentNote
             ]);
             const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
             const wb = XLSX.utils.book_new();
@@ -5530,95 +5633,6 @@
             document.getElementById('paperUpload').value = '';
         }
 
-        // ===== 🆕 AI 配置管理 =====
-        function loadAIConfig() {
-            if (!appData || !appData.aiConfig) {
-                if (appData) appData.aiConfig = getDefaultUserData().aiConfig;
-                return;
-            }
-            const cfg = appData.aiConfig;
-            document.getElementById('aiModel').value = cfg.model || 'qwen-plus';
-            document.getElementById('aiApiKey').value = cfg.apiKey || '';
-            document.getElementById('aiBaseUrl').value = cfg.baseUrl || '';
-            const statusEl = document.getElementById('aiStatus');
-            if (cfg.enabled) {
-                statusEl.textContent = '✅ 已启用';
-                statusEl.style.color = 'var(--success)';
-            } else {
-                statusEl.textContent = '⛔ 未启用';
-                statusEl.style.color = 'var(--danger)';
-            }
-        }
-
-        function saveAIConfig() {
-            if (!appData) { alert('系统未就绪'); return; }
-            const model = document.getElementById('aiModel').value.trim();
-            const apiKey = document.getElementById('aiApiKey').value.trim();
-            const baseUrl = document.getElementById('aiBaseUrl').value.trim();
-            if (!model) {
-                alert('⚠️ 请填写模型名称（如 qwen-plus）');
-                return;
-            }
-            const oldCfg = appData.aiConfig || {};
-            appData.aiConfig = {
-                provider: 'qwen',
-                model: model,
-                apiKey: apiKey || oldCfg.apiKey || '',
-                baseUrl: baseUrl || oldCfg.baseUrl || '',
-                enabled: true
-            };
-            autoSave();
-            const statusEl = document.getElementById('aiStatus');
-            statusEl.textContent = '✅ 已保存并启用';
-            statusEl.style.color = 'var(--success)';
-            alert('✅ AI 配置已保存！');
-        }
-
-        // ===== 🆕 统一 AI 调用引擎（通过 Netlify Functions） =====
-        async function callAI(prompt, systemPrompt = '你是一位经验丰富的班主任。') {
-            const cfg = appData?.aiConfig;
-            if (!cfg || !cfg.enabled) {
-                console.warn('AI 未启用，返回模拟数据');
-                return null;
-            }
-
-            const requestBody = {
-                model: cfg.model || 'qwen-plus',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 2000,
-            };
-            if (cfg.apiKey) {
-                requestBody.apiKey = cfg.apiKey;
-            }
-
-            const baseUrl = cfg.baseUrl || '/.netlify/functions/api';
-            try {
-                const response = await fetch(baseUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestBody),
-                });
-
-                if (!response.ok) {
-                    console.error('代理请求失败:', response.status, await response.text());
-                    return null;
-                }
-
-                const data = await response.json();
-                const content = data.choices?.[0]?.message?.content || '';
-                return content.trim();
-            } catch (error) {
-                console.error('AI 调用异常:', error);
-                return null;
-            }
-        }
-
         // ---------- 页面导航辅助 ----------
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
@@ -5677,17 +5691,19 @@
             document.getElementById('appContainer').classList.add('active');
 
             const userInfo = getUsers()[username];
+            // 更新头像
             const avatarEl = document.getElementById('userAvatar');
             if (userInfo.avatar) {
                 avatarEl.innerHTML = `<img src="${userInfo.avatar}" alt="头像">`;
                 avatarEl.style.background = 'transparent';
             } else {
-                avatarEl.innerHTML = userInfo.realname.charAt(0);
-                avatarEl.style.background = stringToColor(userInfo.realname);
+                const initial = userInfo.realname.charAt(0) || '👤';
+                avatarEl.innerHTML = initial;
+                avatarEl.style.background = stringToColor(userInfo.realname || 'user');
             }
             document.getElementById('userDisplayName').textContent = userInfo.realname + '老师';
             document.getElementById('userRoleDisplay').textContent = (userInfo.role || '班主任') + ' · ' + (userInfo
-                .classname || '');
+                .classname || '未设置班级');
             document.getElementById('sidebarClass').textContent = userInfo.classname || '未设置班级';
 
             initNavigation();
@@ -5695,7 +5711,7 @@
             switchPage('dashboard');
             updateBadges();
             updateHeader();
-            console.log(`✅ 已登录: ${username}`);
+            console.log(`✅ 已登录: ${username} （${userInfo.realname}）`);
         }
 
         // ---------- 自动登录检查 & 清除旧数据 ----------
@@ -5737,11 +5753,11 @@
                 }
             }
             document.getElementById('loginPage').style.display = 'flex';
-            document.getElementById('loginUsername').value = 'fan';
+            document.getElementById('loginUsername').value = 'demo';
             document.getElementById('loginPassword').value = '123456';
         });
 
-        // 全局暴露（原有 + 新增）
+        // 全局暴露
         window.handleLogin = handleLogin;
         window.handleRegister = handleRegister;
         window.handleForgotPassword = handleForgotPassword;
@@ -5833,7 +5849,7 @@
         window.saveAIConfig = saveAIConfig;
         window.callAI = callAI;
 
-        console.log('✅ 班主任工作台完整版已启动（含 AI 功能）。');
+        console.log('✅ 班主任工作台 · 动态身份识别版 + AI 已启动。');
     </script>
 </body>
 </html>
