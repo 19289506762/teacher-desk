@@ -114,6 +114,57 @@ if (url.pathname === '/api/delete-account' && request.method === 'POST') {
     });
   }
 }
+    // ===== 2.5 邀请老师 API =====
+    if (url.pathname === '/api/invite-teacher' && request.method === 'POST') {
+        try {
+            const { email, classId, inviterName } = await request.json();
+
+            if (!email || !classId) {
+                return new Response(JSON.stringify({ error: '缺少邮箱或班级 ID' }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+
+            const SUPABASE_URL = 'https://vmvwlqoadwusvivqffjb.supabase.co';
+            const SUPABASE_SERVICE_KEY = env.SUPABASE_SERVICE_KEY;
+
+            // 调用 Supabase Admin API 发送邀请
+            const inviteRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_SERVICE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    user_metadata: {
+                        class_id: classId,
+                        role: '科任',
+                        invited_by: inviterName || '班主任',
+                    },
+                    // 重定向到您的网站（注册页面）
+                    redirect_to: 'https://d559e727.teacher-desk.pages.dev', // 替换为您的预览或生产 URL
+                }),
+            });
+
+            if (!inviteRes.ok) {
+                const errorData = await inviteRes.text();
+                throw new Error(`邀请失败 (HTTP ${inviteRes.status}): ${errorData}`);
+            }
+
+            return new Response(JSON.stringify({ success: true, message: '邀请已发送！' }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        } catch (error) {
+            return new Response(JSON.stringify({ error: error.message }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+    }
     // ===== 3. 静态文件托管 =====
     return env.ASSETS.fetch(request);
   }
