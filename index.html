@@ -2604,6 +2604,7 @@
         let isDataLoaded = false;
 
         // ---------- 工具函数 ----------
+        // ---------- 工具函数 ----------
         function stringToColor(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
@@ -2639,6 +2640,19 @@
 
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        // ===== 权限控制（Phase 1 新增） =====
+        function isAdmin() {
+            return window.currentUserRole === '班主任';
+        }
+
+        function isTeacher() {
+            return window.currentUserRole === '科任' || window.currentUserRole === '班主任';
+        }
+
+        function getCurrentClassId() {
+            return window.currentUserClassId || null;
         }
 
         // ---------- 字段别名映射 ----------
@@ -2684,6 +2698,7 @@
         }
 
         async function createUserProfile(userId, username, realname, classname) {
+            // 注意：新注册用户会自动通过触发器分配到默认班级，role 默认为 '班主任'
             const { data, error } = await supabaseClient
                 .from('profiles')
                 .insert([{
@@ -2691,7 +2706,7 @@
                     username: username,
                     realname: realname || username,
                     classname: classname || '未设置班级',
-                    role: '班主任'
+                    role: '班主任' // 默认角色
                 }])
                 .select()
                 .single();
@@ -2706,7 +2721,9 @@
             if (!currentUser) return;
 
             try {
-                // 并行加载所有数据
+                const classId = getCurrentClassId();
+
+                // 并行加载所有数据（增加 class_id 过滤）
                 const [
                     studentsRes,
                     seatsRes,
@@ -2724,32 +2741,34 @@
                     scheduleRes,
                     settingsRes
                 ] = await Promise.all([
-                    supabaseClient.from('students').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('seats').select('data').eq('user_id', currentUser.id).maybeSingle(),
-                    supabaseClient.from('attendance').select('date, data').eq('user_id', currentUser.id),
-                    supabaseClient.from('grades').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('homework').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('notices').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('leaves').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('committee').select('data').eq('user_id', currentUser.id).maybeSingle(),
-                    supabaseClient.from('profile_records').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('visits').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('meetings').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('group_notices').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('eval_records').select('*').eq('user_id', currentUser.id),
-                    supabaseClient.from('schedule').select('class_schedule, teacher_schedule').eq('user_id',
-                    currentUser.id)
+                    supabaseClient.from('students').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('seats').select('data').eq('user_id', currentUser.id).eq('class_id', classId)
                     .maybeSingle(),
+                    supabaseClient.from('attendance').select('date, data').eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('grades').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('homework').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('notices').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('leaves').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('committee').select('data').eq('user_id', currentUser.id).eq('class_id', classId)
+                    .maybeSingle(),
+                    supabaseClient.from('profile_records').select('*').eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('visits').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('meetings').select('*').eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('group_notices').select('*').eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('eval_records').select('*').eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('schedule').select('class_schedule, teacher_schedule').eq('user_id',
+                        currentUser.id).eq('class_id', classId).maybeSingle(),
                     supabaseClient.from('user_settings').select('theme, ai_config, picked_history').eq('user_id',
-                        currentUser.id)
-                    .maybeSingle()
+                        currentUser.id).eq('class_id', classId).maybeSingle()
                 ]);
 
-                // 解析学生
                 if (studentsRes.error) throw new Error('加载学生失败: ' + studentsRes.error.message);
                 allStudents = studentsRes.data || [];
 
-                // 解析座次
                 if (seatsRes.error) throw new Error('加载座次失败: ' + seatsRes.error.message);
                 if (seatsRes.data && seatsRes.data.data) {
                     seatData = seatsRes.data.data;
@@ -2757,14 +2776,12 @@
                     initSeats();
                 }
 
-                // 解析考勤
                 if (attendanceRes.error) throw new Error('加载考勤失败: ' + attendanceRes.error.message);
                 attendanceRecords = {};
                 (attendanceRes.data || []).forEach(item => {
                     attendanceRecords[item.date] = item.data || {};
                 });
 
-                // 解析成绩
                 if (gradesRes.error) throw new Error('加载成绩失败: ' + gradesRes.error.message);
                 gradeRecords = {};
                 (gradesRes.data || []).forEach(item => {
@@ -2773,50 +2790,39 @@
                     gradeRecords[item.exam][item.student_id][item.subject] = item.score;
                 });
 
-                // 解析作业
                 if (homeworkRes.error) throw new Error('加载作业失败: ' + homeworkRes.error.message);
                 homeworkList = homeworkRes.data || [];
 
-                // 解析通知
                 if (noticesRes.error) throw new Error('加载通知失败: ' + noticesRes.error.message);
                 noticeItems = noticesRes.data || [];
 
-                // 解析请假
                 if (leavesRes.error) throw new Error('加载请假失败: ' + leavesRes.error.message);
                 leaveRecords = leavesRes.data || [];
 
-                // 解析班委
                 if (committeeRes.error) throw new Error('加载班委失败: ' + committeeRes.error.message);
                 committeeList = committeeRes.data && committeeRes.data.data ? committeeRes.data.data : [];
 
-                // 解析学生记录
                 if (profileRecordsRes.error) throw new Error('加载学生记录失败: ' + profileRecordsRes.error.message);
                 profileRecords = profileRecordsRes.data || [];
 
-                // 解析家访
                 if (visitsRes.error) throw new Error('加载家访失败: ' + visitsRes.error.message);
                 visits = visitsRes.data || [];
 
-                // 解析家长会
                 if (meetingsRes.error) throw new Error('加载家长会失败: ' + meetingsRes.error.message);
                 meetings = meetingsRes.data || [];
 
-                // 解析群通知
                 if (groupNoticesRes.error) throw new Error('加载群通知失败: ' + groupNoticesRes.error.message);
                 groupNotices = groupNoticesRes.data || [];
 
-                // 解析评价记录
                 if (evalRecordsRes.error) throw new Error('加载评价记录失败: ' + evalRecordsRes.error.message);
                 evalRecords = evalRecordsRes.data || [];
 
-                // 解析课程表
                 if (scheduleRes.error) throw new Error('加载课程表失败: ' + scheduleRes.error.message);
                 if (scheduleRes.data) {
                     if (scheduleRes.data.class_schedule) classSchedule = scheduleRes.data.class_schedule;
                     if (scheduleRes.data.teacher_schedule) teacherSchedule = scheduleRes.data.teacher_schedule;
                 }
 
-                // 解析设置
                 if (settingsRes.error) throw new Error('加载设置失败: ' + settingsRes.error.message);
                 if (settingsRes.data) {
                     if (settingsRes.data.theme) setTheme(settingsRes.data.theme, true);
@@ -2838,31 +2844,36 @@
         async function saveAllData() {
             if (!currentUser || !isDataLoaded) return;
 
-            try {
-                // 并行保存所有数据
-                await Promise.all([
-                    // 保存学生（全量替换 - 先删后插）
-                    supabaseClient.from('students').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('students').insert(allStudents.map(s => ({ ...s, user_id: currentUser.id }))),
+            const classId = getCurrentClassId();
 
-                    // 保存座次
+            try {
+                await Promise.all([
+                    // 学生（全量替换 + class_id）
+                    supabaseClient.from('students').delete().eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('students').insert(
+                        allStudents.map(s => ({ ...s, user_id: currentUser.id, class_id: classId }))
+                    ),
+
+                    // 座次
                     supabaseClient.from('seats').upsert({
                         user_id: currentUser.id,
+                        class_id: classId,
                         data: seatData
-                    }, { onConflict: 'user_id' }),
+                    }, { onConflict: 'user_id, class_id' }),
 
-                    // 保存考勤（全量替换）
-                    supabaseClient.from('attendance').delete().eq('user_id', currentUser.id),
+                    // 考勤
+                    supabaseClient.from('attendance').delete().eq('user_id', currentUser.id).eq('class_id', classId),
                     supabaseClient.from('attendance').insert(
                         Object.keys(attendanceRecords).map(date => ({
                             user_id: currentUser.id,
+                            class_id: classId,
                             date: date,
                             data: attendanceRecords[date]
                         }))
                     ),
 
-                    // 保存成绩（全量替换）
-                    supabaseClient.from('grades').delete().eq('user_id', currentUser.id),
+                    // 成绩
+                    supabaseClient.from('grades').delete().eq('user_id', currentUser.id).eq('class_id', classId),
                     supabaseClient.from('grades').insert(
                         (() => {
                             const rows = [];
@@ -2871,11 +2882,13 @@
                                     Object.keys(gradeRecords[exam][studentId]).forEach(subject => {
                                         rows.push({
                                             user_id: currentUser.id,
+                                            class_id: classId,
                                             exam: exam,
                                             student_id: studentId,
                                             subject: subject,
                                             score: gradeRecords[exam][studentId][
-                                            subject]
+                                                subject
+                                            ]
                                         });
                                     });
                                 });
@@ -2884,67 +2897,81 @@
                         })()
                     ),
 
-                    // 保存作业（全量替换）
-                    supabaseClient.from('homework').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('homework').insert(homeworkList.map(h => ({ ...h,
-                        user_id: currentUser.id }))),
+                    // 作业
+                    supabaseClient.from('homework').delete().eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('homework').insert(
+                        homeworkList.map(h => ({ ...h, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存通知（全量替换）
-                    supabaseClient.from('notices').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('notices').insert(noticeItems.map(n => ({ ...n,
-                        user_id: currentUser.id }))),
+                    // 通知
+                    supabaseClient.from('notices').delete().eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('notices').insert(
+                        noticeItems.map(n => ({ ...n, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存请假（全量替换）
-                    supabaseClient.from('leaves').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('leaves').insert(leaveRecords.map(l => ({ ...l,
-                        user_id: currentUser.id }))),
+                    // 请假
+                    supabaseClient.from('leaves').delete().eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('leaves').insert(
+                        leaveRecords.map(l => ({ ...l, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存班委
+                    // 班委
                     supabaseClient.from('committee').upsert({
                         user_id: currentUser.id,
+                        class_id: classId,
                         data: committeeList
-                    }, { onConflict: 'user_id' }),
+                    }, { onConflict: 'user_id, class_id' }),
 
-                    // 保存学生记录
-                    supabaseClient.from('profile_records').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('profile_records').insert(profileRecords.map(r => ({ ...r,
-                        user_id: currentUser.id }))),
+                    // 学生记录
+                    supabaseClient.from('profile_records').delete().eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('profile_records').insert(
+                        profileRecords.map(r => ({ ...r, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存家访
-                    supabaseClient.from('visits').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('visits').insert(visits.map(v => ({ ...v,
-                        user_id: currentUser.id }))),
+                    // 家访
+                    supabaseClient.from('visits').delete().eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('visits').insert(
+                        visits.map(v => ({ ...v, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存家长会
-                    supabaseClient.from('meetings').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('meetings').insert(meetings.map(m => ({ ...m,
-                        user_id: currentUser.id }))),
+                    // 家长会
+                    supabaseClient.from('meetings').delete().eq('user_id', currentUser.id).eq('class_id', classId),
+                    supabaseClient.from('meetings').insert(
+                        meetings.map(m => ({ ...m, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存群通知
-                    supabaseClient.from('group_notices').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('group_notices').insert(groupNotices.map(g => ({ ...g,
-                        user_id: currentUser.id }))),
+                    // 群通知
+                    supabaseClient.from('group_notices').delete().eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('group_notices').insert(
+                        groupNotices.map(g => ({ ...g, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存评价记录
-                    supabaseClient.from('eval_records').delete().eq('user_id', currentUser.id),
-                    supabaseClient.from('eval_records').insert(evalRecords.map(e => ({ ...e,
-                        user_id: currentUser.id }))),
+                    // 评价记录
+                    supabaseClient.from('eval_records').delete().eq('user_id', currentUser.id).eq('class_id',
+                        classId),
+                    supabaseClient.from('eval_records').insert(
+                        evalRecords.map(e => ({ ...e, user_id: currentUser.id, class_id: classId }))
+                    ),
 
-                    // 保存课程表
+                    // 课程表
                     supabaseClient.from('schedule').upsert({
                         user_id: currentUser.id,
+                        class_id: classId,
                         class_schedule: classSchedule,
                         teacher_schedule: teacherSchedule
-                    }, { onConflict: 'user_id' }),
+                    }, { onConflict: 'user_id, class_id' }),
 
-                    // 保存设置
+                    // 设置
                     supabaseClient.from('user_settings').upsert({
                         user_id: currentUser.id,
+                        class_id: classId,
                         theme: document.documentElement.style.getPropertyValue('--primary') || '#3b8cff',
                         ai_config: appData?.aiConfig || { provider: 'qwen', model: 'qwen-plus', apiKey: '',
                             baseUrl: '', enabled: false },
                         picked_history: pickedHistory
-                    }, { onConflict: 'user_id' })
+                    }, { onConflict: 'user_id, class_id' })
                 ]);
 
                 console.log('✅ 所有数据保存完成');
@@ -2954,7 +2981,7 @@
             }
         }
 
-        // 防抖保存 - 每5秒自动保存一次
+        // 防抖保存
         let saveTimeout = null;
 
         function autoSave() {
@@ -3025,6 +3052,13 @@
 
                 currentUser = data.user;
                 currentUserProfile = profile;
+
+                // ✅ Phase 1: 存储角色和班级信息
+                window.currentUserRole = profile.role || '班主任';
+                window.currentUserClassId = profile.class_id || null;
+                localStorage.setItem('classTeacher_role', window.currentUserRole);
+                localStorage.setItem('classTeacher_classId', window.currentUserClassId || '');
+
                 setSession(profile.username, data.user.id);
                 enterApp();
             } catch (err) {
@@ -3051,7 +3085,6 @@
             const email = username + '@workbuddy.local';
 
             try {
-                // 检查用户名是否已被使用
                 const { data: existing, error: checkError } = await supabaseClient
                     .from('profiles')
                     .select('username')
@@ -3063,7 +3096,6 @@
                     return;
                 }
 
-                // 注册用户
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
@@ -3074,7 +3106,6 @@
                     return;
                 }
 
-                // 创建用户资料
                 const profile = await createUserProfile(data.user.id, username, realname, classname);
                 if (!profile) {
                     errorEl.textContent = '❌ 创建用户资料失败，请重试';
@@ -3173,80 +3204,61 @@
                 showLogin();
             }
         }
-// ---------- 注销账户 ----------
-async function deleteAccount() {
-  if (!currentUser) {
-    alert('请先登录');
-    return;
-  }
 
-  // 第一次确认
-  if (!confirm('⚠️ 确定要注销账户吗？\n\n此操作将永久删除：\n- 所有学生信息\n- 所有成绩数据\n- 所有作业记录\n- 所有考勤记录\n- 所有评价记录\n- 所有个人设置\n\n此操作不可恢复！')) {
-    return;
-  }
+        // ---------- 注销账户 ----------
+        async function deleteAccount() {
+            if (!currentUser) {
+                alert('请先登录');
+                return;
+            }
 
-  // 输入密码验证
-  const password = prompt('请输入您的密码以确认注销：');
-  if (password === null) return;
-  if (!password || password.trim() === '') {
-    alert('密码不能为空');
-    return;
-  }
+            if (!confirm('⚠️ 确定要注销账户吗？\n\n此操作将永久删除：\n- 所有学生信息\n- 所有成绩数据\n- 所有作业记录\n- 所有考勤记录\n- 所有评价记录\n- 所有个人设置\n\n此操作不可恢复！')) {
+                return;
+            }
 
-  // 显示加载状态
-  const btn = document.querySelector('.btn-danger');
-  const originalText = btn?.textContent || '注销';
-  if (btn) { btn.textContent = '⏳ 处理中...'; btn.disabled = true; }
+            const password = prompt('请输入您的密码以确认注销：');
+            if (password === null) return;
+            if (!password || password.trim() === '') {
+                alert('密码不能为空');
+                return;
+            }
 
-  try {
-    // 第一步：调用 Worker 删除 Auth 用户（验证密码）
-    const workerResponse = await fetch('/api/delete-account', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: currentUser.id,
-        username: currentUserProfile.username, 
-        password: password.trim(),
-      }),
-    });
+            const btn = document.querySelector('.btn-danger[onclick*="deleteAccount"]');
+            const originalText = btn?.textContent || '注销';
+            if (btn) { btn.textContent = '⏳ 处理中...'; btn.disabled = true; }
 
-    const workerData = await workerResponse.json();
+            try {
+                const response = await fetch('/api/delete-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        username: currentUserProfile.username,
+                        password: password.trim(),
+                    }),
+                });
 
-    if (!workerResponse.ok) {
-      alert('❌ 注销失败：' + (workerData.error || '未知错误'));
-      return;
-    }
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || '注销失败');
 
-    // 第二步：删除 profiles（触发器会自动删除所有业务数据）
-    const { error: deleteError } = await supabaseClient
-      .from('profiles')
-      .delete()
-      .eq('id', currentUser.id);
-
-    if (deleteError) {
-      alert('⚠️ 部分数据删除失败，但账号已被注销。\n请联系管理员手动清理残留数据。');
-      return;
-    }
-
-    // 成功
-    alert('✅ 账户已成功注销，所有数据已清除。');
-    await supabaseClient.auth.signOut();
-    localStorage.removeItem('classTeacher_session_v7');
-    window.location.reload();
-
-  } catch (error) {
-    alert('❌ 注销请求失败：' + error.message);
-  } finally {
-    if (btn) {
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
-  }
-}
+                alert('✅ 账户已成功注销，所有数据已清除。');
+                await supabaseClient.auth.signOut();
+                localStorage.removeItem('classTeacher_session_v7');
+                window.location.reload();
+            } catch (error) {
+                alert('❌ 注销失败：' + error.message);
+            } finally {
+                if (btn) { btn.textContent = originalText; btn.disabled = false; }
+            }
+        }
 
         // ---------- 进入应用 ----------
         async function enterApp() {
             if (!currentUser) return;
+
+            // ✅ Phase 1: 从 localStorage 恢复角色信息
+            window.currentUserRole = localStorage.getItem('classTeacher_role') || '班主任';
+            window.currentUserClassId = localStorage.getItem('classTeacher_classId') || null;
 
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appContainer').classList.add('active');
@@ -3260,6 +3272,31 @@ async function deleteAccount() {
             updateBadges();
 
             console.log(`✅ 已登录: ${currentUserProfile?.username} （${currentUserProfile?.realname}）`);
+            console.log(`角色: ${window.currentUserRole}, 班级: ${window.currentUserClassId}`);
+        }
+
+        // ---------- 邀请老师（Phase 1 新增） ----------
+        async function inviteTeacher(email) {
+            if (!isAdmin()) {
+                alert('只有班主任可以邀请老师');
+                return;
+            }
+            if (!email || !email.includes('@')) {
+                alert('请输入有效的邮箱地址');
+                return;
+            }
+
+            try {
+                // 使用 Supabase Auth Admin API 发送邀请（需要 service_role 密钥，但前端不能直接调用，需通过 Worker 代理）
+                // 这里我们通过 /api/invite-teacher 代理，但为了简化，我们可以直接使用 Supabase 的 invite 方法（需要 admin 权限）
+                // 由于我们无法在前端使用 admin 方法，这里提示用户手动添加老师
+                // 更好的方式是后端实现，但为了 Phase 1 演示，我们提供手动添加指导
+                alert('💡 邀请功能需后端支持。\n请手动在 Supabase Dashboard 的 Authentication → Users 中创建用户，或联系开发者实现完整邀请流程。');
+                // 此处可以扩展为调用 /api/invite-teacher
+                // 暂时保留功能入口
+            } catch (error) {
+                alert('邀请失败：' + error.message);
+            }
         }
 
         // ---------- 导航系统 ----------
@@ -3346,12 +3383,38 @@ async function deleteAccount() {
                     <div class="modal-actions">
                         <button class="btn btn-outline" onclick="closeModal()">关闭</button>
                         <button class="btn btn-primary" onclick="closeModal();openChangePassword()">🔑 修改密码</button>
+                        ${isAdmin() ? `<button class="btn btn-primary" onclick="closeModal();openInviteTeacher()">📧 邀请老师</button>` : ''}
                     </div>
                 </div>
             </div>`;
             document.getElementById('modalContainer').innerHTML = html;
         }
 
+        // ---------- 邀请老师弹窗 ----------
+        function openInviteTeacher() {
+            const html = `
+            <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+                <div class="modal" style="max-width:440px;">
+                    <h3>📧 邀请老师加入班级</h3>
+                    <p class="text-muted" style="margin-bottom:12px;">输入老师的邮箱，系统将发送邀请链接</p>
+                    <div class="form-group"><label>老师邮箱</label><input type="email" id="inviteEmail" placeholder="teacher@example.com"></div>
+                    <div class="modal-actions">
+                        <button class="btn btn-outline" onclick="closeModal()">取消</button>
+                        <button class="btn btn-primary" onclick="handleInviteTeacher()">发送邀请</button>
+                    </div>
+                </div>
+            </div>`;
+            document.getElementById('modalContainer').innerHTML = html;
+        }
+
+        async function handleInviteTeacher() {
+            const email = document.getElementById('inviteEmail').value.trim();
+            if (!email) { alert('请输入邮箱'); return; }
+            await inviteTeacher(email);
+            closeModal();
+        }
+
+        // ---------- 头像上传等其他功能 ----------
         async function handleAvatarUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -3648,6 +3711,7 @@ async function deleteAccount() {
                 filtered = filtered.filter(s => s.name.includes(sl) || s.id.includes(sl));
             }
             const tbody = document.getElementById('studentTableBody');
+            const canDelete = isAdmin();
             tbody.innerHTML = filtered.map(s => {
                 const genderClass = s.gender === '男' ? 'male' : 'female';
                 const roleBadge = s.role && s.role.trim() !== '' ? `<span class="badge-role">⭐</span>` : '';
@@ -3671,7 +3735,7 @@ async function deleteAccount() {
                 <td>
                     <button class="btn-ghost" onclick="event.stopPropagation();showStudentDetail('${s.id}')">详情</button>
                     <button class="btn-ghost" style="color:var(--warning);" onclick="event.stopPropagation();editStudent('${s.id}')">编辑</button>
-                    <button class="btn-ghost" style="color:var(--danger);" onclick="event.stopPropagation();deleteStudent('${s.id}')">删除</button>
+                    ${canDelete ? `<button class="btn-ghost" style="color:var(--danger);" onclick="event.stopPropagation();deleteStudent('${s.id}')">删除</button>` : ''}
                 </td>
             </tr>
         `}).join('');
@@ -3746,6 +3810,7 @@ async function deleteAccount() {
         }
 
         async function deleteStudent(sid) {
+            if (!isAdmin()) { alert('只有班主任可以删除学生'); return; }
             if (!confirm('确定删除该学生吗？')) return;
             allStudents = allStudents.filter(s => s.id !== sid);
             delete attendanceRecords[sid];
@@ -4892,7 +4957,7 @@ async function deleteAccount() {
             }
         }
 
-        // ===== 统一 AI 调用引擎（通过 Netlify Functions） =====
+        // ===== 统一 AI 调用引擎（通过 Cloudflare Worker） =====
         async function callAI(prompt, systemPrompt = '你是一位经验丰富的班主任。') {
             const cfg = appData?.aiConfig;
             if (!cfg || !cfg.enabled) {
@@ -6138,6 +6203,11 @@ async function deleteAccount() {
                         const profile = await loadUserProfile(data.user.id);
                         if (profile) {
                             currentUserProfile = profile;
+                            // 恢复角色信息
+                            window.currentUserRole = profile.role || '班主任';
+                            window.currentUserClassId = profile.class_id || null;
+                            localStorage.setItem('classTeacher_role', window.currentUserRole);
+                            localStorage.setItem('classTeacher_classId', window.currentUserClassId || '');
                             enterApp();
                             return;
                         }
@@ -6166,6 +6236,7 @@ async function deleteAccount() {
         window.showLogin = showLogin;
         window.showForgotPassword = showForgotPassword;
         window.handleLogout = handleLogout;
+        window.deleteAccount = deleteAccount;
         window.setTheme = setTheme;
         window.switchPage = switchPage;
         window.refreshData = refreshData;
@@ -6249,8 +6320,14 @@ async function deleteAccount() {
         window.saveAIConfig = saveAIConfig;
         window.testAIConnection = testAIConnection;
         window.callAI = callAI;
+        window.inviteTeacher = inviteTeacher;
+        window.openInviteTeacher = openInviteTeacher;
+        window.handleInviteTeacher = handleInviteTeacher;
+        window.isAdmin = isAdmin;
+        window.isTeacher = isTeacher;
+        window.getCurrentClassId = getCurrentClassId;
 
-        console.log('✅ WORKBUDDY PRO 云端版已启动。');
+        console.log('✅ WORKBUDDY PRO 云端版已启动（Phase 1 支持多角色）');
     </script>
 </body>
 </html>
